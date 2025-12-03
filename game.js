@@ -2,9 +2,19 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Referensskärm för proportioner
+const refWidth = 1920;
+const refHeight = 1080;
+
+function getScale() {
+    return Math.min(canvas.width / refWidth, canvas.height / refHeight);
+}
+
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
@@ -135,6 +145,7 @@ setInterval(dynamicSpawn, 900);
 // ===== UPDATE =====
 function update() {
     if(gameOver) return;
+    const scale = getScale();
 
     bullets.forEach((b, i) => {
         b.x += b.vx;
@@ -146,10 +157,10 @@ function update() {
         const dx = player.x - e.x;
         const dy = player.y - e.y;
         const dist = Math.hypot(dx, dy);
-        e.x += (dx / dist) * e.speed;
-        e.y += (dy / dist) * e.speed;
+        e.x += (dx / dist) * e.speed * scale;
+        e.y += (dy / dist) * e.speed * scale;
 
-        if (dist < 60) {
+        if (dist < 60 * scale) {
             score -= e.value;
             createPopup("-" + e.value, player.x, player.y - 40, false);
             enemies.splice(i, 1);
@@ -159,7 +170,7 @@ function update() {
     enemies.forEach((e, ei) => {
         bullets.forEach((b, bi) => {
             const dist = Math.hypot(e.x - b.x, e.y - b.y);
-            if (dist < 60) {
+            if (dist < 60 * scale) {
                 score += e.value;
                 stats[e.value]++;
                 createPopup("+" + e.value, e.x, e.y, true);
@@ -185,91 +196,93 @@ function update() {
 // ===== DRAW =====
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const scale = getScale();
 
     // Player
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(player.angle);
-    ctx.drawImage(player.img, -player.width/2, -player.height/2, player.width, player.height);
+    ctx.drawImage(player.img, -player.width/2*scale, -player.height/2*scale, player.width*scale, player.height*scale);
     ctx.restore();
 
-    // Bullets
-    ctx.font = "32px Arial";
+    // Bullets (pengarsäck)
+    ctx.font = `${32*scale}px Arial`;
     bullets.forEach(b => {
-        ctx.fillText("💰", b.x - 16, b.y + 16);
+        ctx.fillText("💰", b.x - 16*scale, b.y + 16*scale);
     });
 
     // Enemies
     enemies.forEach(e => {
-        ctx.drawImage(e.img, e.x - e.width/2, e.y - e.height/2, e.width, e.height);
+        ctx.drawImage(e.img, e.x - e.width/2*scale, e.y - e.height/2*scale, e.width*scale, e.height*scale);
     });
 
     // Score och Highscore
     ctx.fillStyle = "white";
-    ctx.font = "28px Arial";
+    ctx.font = `${28*scale}px Arial`;
     ctx.textAlign = "left";
-    ctx.fillText("Saldo: " + score + " kr", 20, 40);
-    ctx.fillText("Highscore: " + highScore + " kr", 20, 70);
+    ctx.fillText("Saldo: " + score + " kr", 20*scale, 40*scale);
+    ctx.fillText("Highscore: " + highScore + " kr", 20*scale, 70*scale);
 
     // Game over
     if(gameOver){
         ctx.fillStyle = "rgba(0,0,0,0.7)";
-        const boxWidth = 400;
-        const boxHeight = 400;
+        const boxWidth = 400*scale;
+        const boxHeight = 400*scale;
         const boxX = canvas.width/2 - boxWidth/2;
         const boxY = canvas.height/2 - boxHeight/2;
         ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
         ctx.fillStyle = "white";
-        ctx.font = "24px Arial";
+        ctx.font = `${24*scale}px Arial`;
         ctx.textAlign = "center";
 
         let line = 0;
-        ctx.fillText("GAME OVER", canvas.width/2, boxY + 40 + line*30);
+        ctx.fillText("GAME OVER", canvas.width/2, boxY + 40*scale + line*30*scale);
         line++;
-        ctx.fillText(`Saldo denna runda: ${score} kr`, canvas.width/2, boxY + 40 + line*30);
+        ctx.fillText(`Saldo denna runda: ${score} kr`, canvas.width/2, boxY + 40*scale + line*30*scale);
         line++;
-        ctx.fillText(`Highscore: ${highScore} kr`, canvas.width/2, boxY + 40 + line*30);
+        ctx.fillText(`Highscore: ${highScore} kr`, canvas.width/2, boxY + 40*scale + line*30*scale);
         line++;
-        ctx.fillText(`Statistik per valör:`, canvas.width/2, boxY + 40 + line*30);
+        ctx.fillText(`Statistik per valör:`, canvas.width/2, boxY + 40*scale + line*30*scale);
         line++;
 
         ctx.textAlign = "left";
-        let startX = boxX + 30;
-        let startY = boxY + 40 + line*30;
+        let startX = boxX + 30*scale;
+        let startY = boxY + 40*scale + line*30*scale;
         for(let val in stats){
             ctx.fillText(`${val} kr: ${stats[val]} träffar`, startX, startY);
-            startY += 25;
+            startY += 25*scale;
         }
 
         let total = 0;
         for(let val in stats){
             total += val * stats[val];
         }
-        ctx.fillText(`Totalt förtjänat: ${total} kr`, startX, startY + 20);
+        ctx.fillText(`Totalt förtjänat: ${total} kr`, startX, startY + 20*scale);
 
         // NY RUNDA KNAPP
-        const btnWidth = 140;
-        const btnHeight = 50;
-        const btnX = canvas.width - btnWidth - 20;
-        const btnY = canvas.height - btnHeight - 20;
+        const btnWidth = 140*scale;
+        const btnHeight = 50*scale;
+        const btnX = canvas.width - btnWidth - 20*scale;
+        const btnY = canvas.height - btnHeight - 20*scale;
         ctx.fillStyle = "#28a745"; // grön
         ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
 
         ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
+        ctx.font = `${20*scale}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText("Ny runda", btnX + btnWidth/2, btnY + 32);
+        ctx.fillText("Ny runda", btnX + btnWidth/2, btnY + 32*scale);
     }
 }
 
 // Klicka på knapp för ny runda
 canvas.addEventListener("click", e => {
     if(gameOver){
-        const btnWidth = 140;
-        const btnHeight = 50;
-        const btnX = canvas.width - btnWidth - 20;
-        const btnY = canvas.height - btnHeight - 20;
+        const scale = getScale();
+        const btnWidth = 140*scale;
+        const btnHeight = 50*scale;
+        const btnX = canvas.width - btnWidth - 20*scale;
+        const btnY = canvas.height - btnHeight - 20*scale;
         if(e.clientX >= btnX && e.clientX <= btnX + btnWidth &&
            e.clientY >= btnY && e.clientY <= btnY + btnHeight){
             newRound();
