@@ -98,15 +98,13 @@ function shoot() {
 canvas.addEventListener("click", shoot);
 canvas.addEventListener("touchstart", shoot);
 
-// ===== SPAWN ENEMY WITH CHANCE =====
+// ===== SPAWN ENEMY =====
 function spawnEnemy() {
     if(gameOver) return;
-
     const filtered = moneyTypes.filter(m => Math.random() * 100 < m.chance);
     if(filtered.length === 0) return;
 
     const type = filtered[Math.floor(Math.random() * filtered.length)];
-
     let x, y;
     const side = Math.floor(Math.random() * 4);
     if (side === 0) { x = Math.random() * canvas.width; y = -60; }
@@ -124,7 +122,7 @@ function spawnEnemy() {
     });
 }
 
-// Dynamisk spawn: fler fiender ju högre saldo
+// Dynamisk spawn
 function dynamicSpawn() {
     if(gameOver) return;
     let spawnCount = 1 + Math.floor(score / 500);
@@ -138,14 +136,12 @@ setInterval(dynamicSpawn, 900);
 function update() {
     if(gameOver) return;
 
-    // Move bullets
     bullets.forEach((b, i) => {
         b.x += b.vx;
         b.y += b.vy;
         if (b.x < 0 || b.y < 0 || b.x > canvas.width || b.y > canvas.height) bullets.splice(i, 1);
     });
 
-    // Move enemies
     enemies.forEach((e, i) => {
         const dx = player.x - e.x;
         const dy = player.y - e.y;
@@ -153,7 +149,6 @@ function update() {
         e.x += (dx / dist) * e.speed;
         e.y += (dy / dist) * e.speed;
 
-        // Enemy hits player
         if (dist < 60) {
             score -= e.value;
             createPopup("-" + e.value, player.x, player.y - 40, false);
@@ -161,7 +156,6 @@ function update() {
         }
     });
 
-    // Bullet hits enemy
     enemies.forEach((e, ei) => {
         bullets.forEach((b, bi) => {
             const dist = Math.hypot(e.x - b.x, e.y - b.y);
@@ -177,13 +171,11 @@ function update() {
         });
     });
 
-    // Check highscore
     if(score > highScore){
         highScore = score;
         localStorage.setItem("highScore", highScore);
     }
 
-    // Game over om saldo < 0
     if(score < 0 && !gameOver){
         gameOver = true;
         gameOverSound.play();
@@ -201,7 +193,7 @@ function draw() {
     ctx.drawImage(player.img, -player.width/2, -player.height/2, player.width, player.height);
     ctx.restore();
 
-    // Bullets (emoji)
+    // Bullets
     ctx.font = "32px Arial";
     bullets.forEach(b => {
         ctx.fillText("💰", b.x - 16, b.y + 16);
@@ -219,7 +211,7 @@ function draw() {
     ctx.fillText("Saldo: " + score + " kr", 20, 40);
     ctx.fillText("Highscore: " + highScore + " kr", 20, 70);
 
-    // ===== GAME OVER STATISTICS =====
+    // Game over
     if(gameOver){
         ctx.fillStyle = "rgba(0,0,0,0.7)";
         const boxWidth = 400;
@@ -256,11 +248,34 @@ function draw() {
         }
         ctx.fillText(`Totalt förtjänat: ${total} kr`, startX, startY + 20);
 
-        // Klick för ny runda
+        // NY RUNDA KNAPP
+        const btnWidth = 140;
+        const btnHeight = 50;
+        const btnX = canvas.width - btnWidth - 20;
+        const btnY = canvas.height - btnHeight - 20;
+        ctx.fillStyle = "#28a745"; // grön
+        ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("Klicka för ny runda", canvas.width/2, boxY + boxHeight - 40);
+        ctx.fillText("Ny runda", btnX + btnWidth/2, btnY + 32);
     }
 }
+
+// Klicka på knapp för ny runda
+canvas.addEventListener("click", e => {
+    if(gameOver){
+        const btnWidth = 140;
+        const btnHeight = 50;
+        const btnX = canvas.width - btnWidth - 20;
+        const btnY = canvas.height - btnHeight - 20;
+        if(e.clientX >= btnX && e.clientX <= btnX + btnWidth &&
+           e.clientY >= btnY && e.clientY <= btnY + btnHeight){
+            newRound();
+        }
+    }
+});
 
 // ===== NEW ROUND =====
 function newRound() {
@@ -270,13 +285,6 @@ function newRound() {
     stats = {1:0,2:0,5:0,10:0,20:0,50:0,100:0,200:0,500:0};
     gameOver = false;
 }
-
-// Starta ny runda när man klickar på canvas efter game over
-canvas.addEventListener("click", e => {
-    if(gameOver){
-        newRound();
-    }
-});
 
 // ===== GAME LOOP =====
 function loop() {
